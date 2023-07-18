@@ -22,20 +22,14 @@ def open_case(city):
                 'Probable': int(probable),
                 'Deceased': int(deceased)
             }
-
             total_confirmed += int(confirmed)
 
-            print(f"Barangay: {barangay.title()}")
-            print(f"Confirmed: {confirmed}")
-            print(f"Active: {active}")
-            print(f"Recovered: {recovered}")
-            print(f"Suspect: {suspect}")
-            print(f"Probable: {probable}")
+            print(f"Barangay: {barangay.title()}\nConfirmed: {confirmed}\nActive: {active}")
+            print(f"Recovered: {recovered}\nSuspect: {suspect}\nProbable: {probable}")
             print(f"Deceased: {deceased}")
             print('-' * 30)
-    
-    print(f"\nTotal confirmed cases: {total_confirmed}\n")
 
+    print(f"\nTotal confirmed cases: {total_confirmed}\n")
     return data
 
 def update_file(city, data):
@@ -46,11 +40,10 @@ def update_file(city, data):
             line = f"{barangay},{cases['Confirmed']},{cases['Active']},{cases['Recovered']},{cases['Suspect']},{cases['Probable']},{cases['Deceased']}\n"
             file.write(line)
 
-def update_case(data, barangay, field, value, city):
-    if barangay not in data:
+def update_case(data, barangay, field, value, city): # properly compute the cases, if someone in the active cases recovered it must be decreased
+    if barangay not in data: # and the recovered case number must increase
         print("Barangay does not exist.\n")
         return
-
     if field not in data[barangay]:
         print("Invalid field.\n")
         return
@@ -105,7 +98,6 @@ def create_case(city):
         barangay = input("Enter barangay (or 'exit' to finish): ")
         if barangay == 'exit':
             break
-
         if barangay in data:
             print("Barangay already exists.\n")
             continue
@@ -135,21 +127,35 @@ def create_case(city):
     print("City case data created successfully.\n")
 
 def main():
+    cityList = []
+    path = os.path.dirname(os.path.realpath(__file__))
     while True:
         userInput = input("1 - Enter a city\n2 - Create a new case for a city\n> ")
         if userInput == "1":
-            city = input("Enter city (Cabuyao or StaRosa): ").lower()
-            if city not in ['cabuyao', 'starosa']:
+            for f_name in os.listdir(path):
+                if "Case" in f_name and f_name.endswith(".txt") and f_name not in cityList:
+                    cityList.append(f_name)
+
+            print("\nList of cities available:")
+            for c in sorted(cityList):
+                print(c.replace('Case.txt', '').title())
+
+            city = input("\nEnter city: ").lower()
+            if city not in [i.replace('Case.txt', '').lower() for i in cityList]:
                 print("Invalid city. Please try again.\n")
                 continue
         elif userInput == "2":
-            pass
+            city = input("\nEnter city: ").title()
+            create = create_case(city)
+            if not create:
+                continue
+        else:
+            print("Invalid input.")
+            continue
 
-        action = input("Choose action (open, update, add, delete, create, exit): ").lower()
-
+        action = input("Choose action (open, update, add, delete, exit): ").lower()
         if action == 'exit':
             break
-
         if action == 'open':
             open_case(city)
         elif action == 'update':
@@ -167,19 +173,39 @@ def main():
             if not data:
                 continue
 
-            barangay = input("Enter barangay to add: ").upper()
-            add_barangay(data, barangay, city)
+            barangay = input("Enter barangay to add: ").upper().strip()
+            if barangay:
+                confirm = input("Are you sure (Y/N)? ").lower()
+                if confirm == "n":
+                    continue
+                elif confirm == "y":
+                    add_barangay(data, barangay, city)
+                else:
+                    print("Invalid input.\n")
+                    continue
+            else:
+                print("Invalid input.\n")
+                continue
         elif action == 'delete':
             data = open_case(city)
             if not data:
                 continue
 
-            barangay = input("Enter barangay to delete: ").upper()
-            delete_barangay(data, barangay, city)
-        elif action == 'create':
-            create_case(city)
+            barangay = input("Enter barangay to delete: ").upper().strip()
+            if barangay:
+                confirm = input("Are you sure (Y/N)? ").lower()
+                if confirm == "n":
+                    continue
+                elif confirm == "y":
+                    delete_barangay(data, barangay, city)
+                else:
+                    print("Invalid input.\n")
+                    continue
+            else:
+                print("Invalid input.\n")
+                continue
         else:
-            print("Invalid action. Please try again.\n")
+            print("Invalid input.\n")
 
 if __name__ == '__main__':
     main()
