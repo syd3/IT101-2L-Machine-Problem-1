@@ -14,17 +14,18 @@ def open_case(city):
         print('-' * 30)
         for line in file:
             barangay, confirmed, active, recovered, suspect, probable, deceased = line.strip().split(',')
+            total_cases = int(active) + int(recovered) + int(deceased)
             data[barangay] = {
-                'Confirmed': int(confirmed),
+                'Confirmed': total_cases,
                 'Active': int(active),
                 'Recovered': int(recovered),
                 'Suspect': int(suspect),
                 'Probable': int(probable),
                 'Deceased': int(deceased)
             }
-            total_confirmed += int(confirmed)
+            total_confirmed += total_cases
 
-            print(f"Barangay: {barangay.title()}\nConfirmed: {confirmed}\nActive: {active}")
+            print(f"Barangay: {barangay.title()}\nConfirmed: {total_cases}\nActive: {active}")
             print(f"Recovered: {recovered}\nSuspect: {suspect}\nProbable: {probable}")
             print(f"Deceased: {deceased}")
             print('-' * 30)
@@ -40,8 +41,8 @@ def update_file(city, data):
             line = f"{barangay},{cases['Confirmed']},{cases['Active']},{cases['Recovered']},{cases['Suspect']},{cases['Probable']},{cases['Deceased']}\n"
             file.write(line)
 
-def update_case(data, barangay, field, value, city): # properly compute the cases, if someone in the active cases recovered it must be decreased
-    if barangay not in data: # and the recovered case number must increase
+def update_case(data, barangay, field, value, city):
+    if barangay not in data:
         print("Barangay does not exist.\n")
         return
     if field not in data[barangay]:
@@ -49,13 +50,19 @@ def update_case(data, barangay, field, value, city): # properly compute the case
         return
 
     current_value = data[barangay][field]
-    # if field == 'Recovered' and value > current_value:
-    #     print("Recovered cases cannot exceed the current value.\n")
-    #     return
-
-    data[barangay][field] = value
+    data[barangay][field] = value + current_value
     if field == 'Recovered':
-        data[barangay]['Active'] -= (value - current_value)
+        if field == "Recovered" and value > data[barangay]['Active']:
+            print("Recovered cases cannot exceed the active cases.\n")
+            return
+        else:
+            data[barangay]['Active'] -= value
+    elif field == "Deceased":
+        if field == "Deceased" and value > data[barangay]['Active']:
+            print("Deceased cases cannot exceed the active cases.\n")
+            return
+        else:
+            data[barangay]['Active'] -= value
 
     update_file(city, data)
     print("Updated city case data.\n")
@@ -96,8 +103,8 @@ def create_case(city):
     data = {}
     has_data = False
     while True:
-        barangay = input("Enter barangay (or 'exit' to finish): ").strip()
-        if barangay == 'exit':
+        barangay = input("Enter barangay (or 'exit' to finish): ").upper().strip()
+        if barangay == 'EXIT':
             if has_data:
                 break
             else:
@@ -114,12 +121,12 @@ def create_case(city):
 
         while True:
             try:
-                confirmed = int(input("Enter confirmed cases: "))
                 active = int(input("Enter active cases: "))
                 recovered = int(input("Enter recovered cases: "))
                 suspect = int(input("Enter suspect cases: "))
                 probable = int(input("Enter probable cases: "))
                 deceased = int(input("Enter deceased cases: "))
+                confirmed = active + recovered + deceased
                 break
             except ValueError:
                 print("Invalid input.\n")
@@ -181,6 +188,9 @@ def main():
 
             barangay = input("Enter barangay: ").upper()
             field = input("Enter field to update: ").title()
+            if field == "Confirmed":
+                print("The confirmed field does not take any input.\n")
+                continue
             value = int(input("Enter new value: "))
 
             update_case(data, barangay, field, value, city)
